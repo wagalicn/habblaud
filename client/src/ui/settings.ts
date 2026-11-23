@@ -159,6 +159,8 @@ export class SettingsPopover implements UiComponent {
       [['auto', tr('Automático')], ...LOCALES.map((l): [LanguageChoice, string] => [l.id, l.name])],
       (v) => pickLanguage(v),
     );
+    // Seis idiomas não cabem em colunas iguais: os nomes quebram ("简体中/文"). Aqui as opções quebram de linha inteiras.
+    this.language.row.querySelector('.ui-seg')?.classList.add('ui-seg--wrap');
     this.language.row.append(
       h('span', { class: 'ui-set__hint', text: tr('Os textos das atividades vêm do servidor: seguem HABBLAUD_LANG ou o idioma do sistema onde o Habblaud roda (o inglês, só com HABBLAUD_LANG=en).') }),
     );

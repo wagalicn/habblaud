@@ -635,7 +635,7 @@ export const ZH: Readonly<Record<string, string>> = {
   "Halloween": "万圣节",
   "Automático: Halloween em outubro e Natal de 1º de novembro a 26 de dezembro; no resto do ano, o visual original. Nenhum: sempre o original.": "自动：10 月为万圣节，11 月 1 日至 12 月 26 日为圣诞节；其余时间为原始外观。无：始终为原始外观。",
   "Idioma da interface": "界面语言",
-  "Os textos das atividades vêm do servidor: seguem HABBLAUD_LANG ou o idioma do sistema onde o Habblaud roda (o inglês, só com HABBLAUD_LANG=en).": "活动文本来自服务器：跟随 HABBLAUD_LANG 或运行 Habblaud 的系统语言（只有设置 HABBLAUD_LANG=en 时才是英语）。",
+  "Os textos das atividades vêm do servidor: seguem HABBLAUD_LANG ou o idioma do sistema onde o Habblaud roda (o inglês, só com HABBLAUD_LANG=en).": "活动文本来自服务器：跟随 HABBLAUD_LANG，未设置时默认简体中文（例如 HABBLAUD_LANG=en 切到英语）。",
   "Dados": "数据",
   "Modo demonstração": "演示模式",
   "Coloca agentes fictícios no escritório, junto com os reais.": "在办公室里加入虚构的智能体，与真实的智能体一起出现。",

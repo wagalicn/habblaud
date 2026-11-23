@@ -2927,6 +2927,17 @@
     color 0.15s;
 }
 
+.ui-seg--wrap {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.ui-seg--wrap .ui-seg__opt {
+  flex: 1 1 auto;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
 .ui-seg__opt:hover {
   color: var(--ui-text);
 }
