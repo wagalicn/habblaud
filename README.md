@@ -11,6 +11,15 @@
 
 <p align="center"><b>English</b> · <a href="README.pt-BR.md">Português</a> · <a href="README.es.md">Español</a> · <a href="README.fr.md">Français</a></p>
 
+> **关于本分支 / About this fork**
+>
+> 这是 [wagalicn/habblaud](https://github.com/wagalicn/habblaud)，基于 [marmottajr/habblaud](https://github.com/marmottajr/habblaud)（原作者 Márcio Junior，MIT 协议）独立开发的分支：增加了 DeepSeek Harness 支持（会话、实时终端、消息、子智能体）和简体中文界面。本分支不保证与原项目同步，问题请在本仓库反馈，不要提交给原作者。
+>
+> This is [wagalicn/habblaud](https://github.com/wagalicn/habblaud), an independently maintained fork of
+> [marmottajr/habblaud](https://github.com/marmottajr/habblaud) by Márcio Junior (MIT). It adds DeepSeek Harness
+> support (sessions, live terminal, messages, subagents) and a Simplified Chinese interface. It is not kept in sync
+> with the original project; please report issues here, not upstream.
+
 <p align="center">
   <img alt="Node.js 22.12+" src="https://img.shields.io/badge/node-%E2%89%A522.12-5fa04e?logo=node.js&logoColor=white" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-7-3178c6?logo=typescript&logoColor=white" />
