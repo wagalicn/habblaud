@@ -1143,6 +1143,53 @@
   font-style: italic;
 }
 
+/* DeepSeek Harness: o saldo no lugar do e-mail; acinzentado quando é só o ponto de referência do livro-caixa. */
+.ui-usage-card__email.is-balance {
+  color: var(--lv-ok);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-usage-card__email.is-balance.is-dim {
+  color: var(--ui-muted);
+}
+
+/* Gasto local (DeepSeek Harness): duas linhas "Hoje" e "7 dias" com custo e tokens, no lugar das barras. */
+.ui-usage-spend {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 6px;
+  row-gap: 1px;
+}
+
+.ui-usage-spend[hidden] {
+  display: none;
+}
+
+.ui-usage-spend__row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: subgrid;
+  align-items: center;
+  height: 15px;
+  font-size: 10.5px;
+}
+
+.ui-usage-spend__label {
+  color: var(--ui-muted);
+  white-space: nowrap;
+}
+
+.ui-usage-spend__value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 650 11px/1 var(--font-ui);
+  color: var(--lv-ok);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Cartão estreito (3 contas, telas médias): some o e-mail (fica na dica), depois rótulos e reinício encurtam. */
 @container usage-card (max-width: 236px) {
   .ui-usage-card__email {

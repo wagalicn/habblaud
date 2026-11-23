@@ -301,6 +301,45 @@ export interface AccountUsage {
   fetchedAt: number;
 }
 
+/** Tokens e custo de um período (gasto local do plugin de custo do DeepSeek Harness). */
+export interface SpendPeriod {
+  input: number;
+  output: number;
+  cacheRead: number;
+  cacheWrite: number;
+  /** Chamadas ao modelo. */
+  calls: number;
+  /** Custo estimado pelo plugin, na moeda de AccountSpend.currency (modelo sem preço conta 0). */
+  cost: number;
+}
+
+/**
+ * Gasto local de uma conta sem janelas de limite (DeepSeek Harness: o livro-caixa do plugin dsh-cost-meter em
+ * ~/.dsh/storages/cost-meter/ledger.json). Números do próprio computador, só lidos.
+ */
+export interface AccountSpend {
+  source: 'dsh-cost-meter';
+  /** Moeda do custo (a escolhida no plugin, ex.: "CNY") e o símbolo dela. */
+  currency: string;
+  symbol: string;
+  today: SpendPeriod;
+  /** Últimos 7 dias (com hoje). */
+  week: SpendPeriod;
+  /** Mês corrente. */
+  month: SpendPeriod;
+  /** Modelos de hoje, do que mais gastou tokens ao que menos (até 4). */
+  models: { name: string; tokens: number; cost: number }[];
+  /**
+   * Saldo da conta do provedor: o que o cost-meter consultou por último. `live` = veio do plugin
+   * dsh-habblaud-uso (o saldo atual do cost-meter); sem ele, é o ponto de referência gravado no livro-caixa.
+   */
+  balance?: { total: number; currency: string; at: number; granted?: number; toppedUp?: number; live?: boolean };
+  /** A consulta de saldo do cost-meter falhou ou está desligada (vem do plugin dsh-habblaud-uso). */
+  balanceStatus?: 'error' | 'off';
+  /** Quando o plugin gravou o livro-caixa (epoch ms). */
+  fetchedAt: number;
+}
+
 /** Uma conta do Claude (um config dir: ~/.claude, ~/.claude-conta2, ...) ou do Codex (um CODEX_HOME: ~/.codex). */
 export interface AccountInfo {
   /** = AgentInfo.account (basename do config dir, ex.: ".claude"); único entre as contas de todas as ferramentas. */
@@ -321,6 +360,8 @@ export interface AccountInfo {
   /** Sessões abertas agora nesta conta. */
   sessions: number;
   usage?: AccountUsage;
+  /** Gasto local (tokens e custo), para contas sem janelas de limite (DeepSeek Harness). */
+  spend?: AccountSpend;
   /**
    * - ok: números recentes;
    * - stale: números antigos (ex.: cache do /usage de horas atrás);

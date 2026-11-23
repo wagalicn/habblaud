@@ -5,7 +5,7 @@
 // descobertas pela fonte delas (setProviderAccounts), com ids únicos entre todas as contas; o uso delas também é
 // empurrado pela fonte (setUsage), ao lado do statusline e do cache do /usage do Claude Code.
 import { basename, resolve } from 'node:path';
-import type { AccountInfo, AccountUsage, Provider } from '../../shared/types';
+import type { AccountInfo, AccountSpend, AccountUsage, Provider } from '../../shared/types';
 import { log } from '../log';
 import { detectAccounts, type DetectedAccount } from './detect';
 import { StatuslineUsageReader, type StatuslineUsage } from './statusline';
@@ -48,6 +48,7 @@ export interface AccountsServiceOptions {
 
 export class AccountsService {
   readonly usage = new UsageStore();
+  private readonly spend = new Map<string, AccountSpend>();
   /** Contas do Claude Code (config dirs). */
   private list_: AccountEntry[] = [];
   /** Contas das outras ferramentas, por ferramenta (setProviderAccounts). */
@@ -160,6 +161,16 @@ export class AccountsService {
     return changed;
   }
 
+  /** Gasto local da conta (tokens e custo; DeepSeek Harness), ou undefined para esquecer. Devolve true se mudou. */
+  setSpend(accountId: string, spend: AccountSpend | undefined): boolean {
+    const prev = this.spend.get(accountId);
+    if (JSON.stringify(prev) === JSON.stringify(spend)) return false;
+    if (spend) this.spend.set(accountId, spend);
+    else this.spend.delete(accountId);
+    this.opts.onChange();
+    return true;
+  }
+
   /** Esquece o uso de uma origem da conta (ex.: a fonte não tem mais números). Devolve true se algo mudou. */
   clearUsage(accountId: string, source: UsageSource): boolean {
     const changed = this.usage.clear(accountId, source);
@@ -244,6 +255,8 @@ export class AccountsService {
       if (d.organization) info.organization = d.organization;
       if (d.plan) info.plan = d.plan;
       if (view.usage) info.usage = view.usage;
+      const spend = this.spend.get(e.id);
+      if (spend) info.spend = spend;
       return info;
     });
   }

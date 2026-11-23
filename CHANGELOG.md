@@ -12,6 +12,13 @@ do meio (0.**3**.0).
 
 ### Adicionado
 
+- **Gasto do DeepSeek Harness no cartão da conta.** Com o plugin dsh-cost-meter, o cartão mostra os tokens e o custo
+  de hoje e dos últimos 7 dias (na dica: mês, modelos de hoje e saldo), lidos do livro-caixa local dele
+  (`~/.dsh/storages/cost-meter/ledger.json`; `HABBLAUD_DSH_LEDGER` muda o arquivo). Só leitura.
+- **Saldo do DeepSeek Harness no cartão da conta.** O cartão mostra o saldo da conta DeepSeek. Com o novo plugin
+  `mod/dsh-habblaud-uso` instalado no DeepSeek Harness, o saldo é o atual, que o dsh-cost-meter já consulta (o plugin
+  só grava o valor em `~/.dsh/storages/habblaud/balance.json`, sem chave nem rede; `HABBLAUD_DSH_BALANCE` muda o
+  arquivo); sem ele, aparece apagado o último ponto de referência do livro-caixa.
 - **Recolher o terminal.** Um botão na barra (ao lado do expandir), a tecla H ou Ctrl/⌘+Shift+H (que vale até
   digitando) recolhem a janela da conversa numa barra no canto de baixo; a conversa continua chegando e o mesmo atalho,
   o botão ou um duplo clique na barra abrem de novo.

@@ -38,6 +38,7 @@ import { discoverCodexDirs } from './sources/codex/accounts';
 import { CodexHistory } from './sources/codex/history';
 import { CodexSource } from './sources/codex/source';
 import { discoverDshDir, DshSource } from './sources/dsh/source';
+import { costMeterLedger, DshSpendWatcher, habblaudBalanceFile } from './sources/dsh/spend';
 import { createBuildReader, readBuildInfo } from './build';
 import { UpdateChecker } from './updates/checker';
 import { getLocale, tr, worldLocaleOf } from '../shared/i18n';
@@ -140,6 +141,10 @@ const agents = new SourceSet([claude]);
 const dshDir = config.dsh ? discoverDshDir(process.env, config.home) : undefined;
 const dsh = dshDir ? new DshSource({ accounts, office, dir: dshDir, env: process.env }) : undefined;
 if (dsh) agents.add(dsh);
+// Gasto local do DeepSeek Harness (livro-caixa do plugin dsh-cost-meter; só lido).
+const dshSpend = dsh && dshDir
+  ? new DshSpendWatcher({ accounts, accountId: () => accounts.entriesOf('dsh')[0]?.id, ledger: costMeterLedger(dshDir), balance: habblaudBalanceFile(dshDir) })
+  : undefined;
 const codexDirs = config.codex ? discoverCodexDirs(process.env, config.home) : [];
 const codex = codexDirs.length ? new CodexSource({ accounts, office, dirs: codexDirs, env: process.env, home: config.home }) : undefined;
 if (codex) agents.add(codex);
@@ -325,6 +330,7 @@ if (config.demo) office.setDemo(true);
 // As fontes síncronas (a do Claude Code) terminam o boot aqui, antes de o hub começar a transmitir.
 void agents.start();
 accounts.start();
+dshSpend?.start();
 hub.start();
 if (timeline) {
   timeline.start();
@@ -559,6 +565,7 @@ function shutdown(signal: string): void {
   stats.stop();
   agents.stop();
   accounts.stop();
+  dshSpend?.stop();
   hub.stop();
   terminals?.stop();
   timeline?.stop();

@@ -7,10 +7,10 @@
 // Conta do Codex: os números vêm dos arquivos de sessão dele, que só se renovam enquanto alguma sessão roda; por isso
 // a idade ("há 12 min") fica sempre à mostra. Sem cota nem créditos ("sem cota") nunca vira 0%. Não há o que
 // instalar para o uso: "Como funciona" abre a ajuda na seção do Codex. Sem Opus/Sonnet nem e-mail (só o plano).
-import type { AccountInfo } from '../../../shared/types';
+import type { AccountInfo, AccountSpend, SpendPeriod } from '../../../shared/types';
 import type { UiContext } from './context';
 import { h, KeyedList, setAttr, setHidden, setStyleVar, setText, setTitle, setVariant } from './dom';
-import { FIVE_HOURS_MS, relativeTime, usageLevel, usageWindowView, WEEK_MS, type UsageWindowView } from './format';
+import { FIVE_HOURS_MS, formatInt, formatTokens, relativeTime, usageLevel, usageWindowView, WEEK_MS, type UsageWindowView } from './format';
 import { ICONS } from './icons';
 import { isCodex } from './provider';
 import { usageRowFits } from './usage-row';
@@ -70,6 +70,9 @@ interface CardRefs {
   meters: HTMLElement;
   five: Meter;
   week: Meter;
+  spend: HTMLElement;
+  spendToday: HTMLElement;
+  spendWeek: HTMLElement;
   msg: HTMLElement;
   msgLong: HTMLElement;
   msgShort: HTMLElement;
@@ -151,15 +154,48 @@ export function createUsageSetup(): HTMLElement {
   );
 }
 
-/** ok/stale: números recentes/antigos; empty: sem números; noquota: Codex sem cota nem créditos (nunca 0%). */
-export type CardState = 'ok' | 'stale' | 'empty' | 'noquota';
+/**
+ * ok/stale: números recentes/antigos; empty: sem números; noquota: Codex sem cota nem créditos (nunca 0%);
+ * spend: gasto local (tokens e custo) no lugar das janelas (DeepSeek Harness, plugin dsh-cost-meter).
+ */
+export type CardState = 'ok' | 'stale' | 'empty' | 'noquota' | 'spend';
+
+/** Custo do gasto local na moeda do plugin: "¥0.00", "¥0.0042" (4 casas nos valores pequenos). */
+export function formatSpendCost(cost: number, symbol: string): string {
+  const v = Math.max(0, cost);
+  return `${symbol}${v.toFixed(v > 0 && v < 0.01 ? 4 : 2)}`;
+}
+
+/** Tokens do período (entrada, saída e cache). */
+export function spendTokens(p: SpendPeriod): number {
+  return p.input + p.output + p.cacheRead + p.cacheWrite;
+}
+
+/** "¥1.23 · 38,1 M": custo e tokens do período. */
+export function spendSummary(p: SpendPeriod, symbol: string): string {
+  return tr('{0} · {1} tokens', [formatSpendCost(p.cost, symbol), formatTokens(spendTokens(p))]);
+}
+
+/** Saldo na moeda dele: "¥59.70" (mesma moeda do gasto usa o símbolo do plugin). */
+export function formatBalance(s: AccountSpend): string {
+  const b = s.balance;
+  if (!b) return '';
+  const sym = b.currency.toUpperCase() === s.currency ? s.symbol : `${b.currency} `;
+  return `${sym}${b.total.toFixed(2)}`;
+}
+
+function isDsh(a: { provider?: AccountInfo['provider'] }): boolean {
+  return a.provider === 'dsh';
+}
 
 function hasWindows(a: Pick<AccountInfo, 'usage'>): boolean {
   return !!a.usage && !!(a.usage.fiveHour || a.usage.sevenDay);
 }
 
 /** Estado efetivo do cartão. */
-export function cardState(a: Pick<AccountInfo, 'usage' | 'usageStatus'>): CardState {
+export function cardState(a: Pick<AccountInfo, 'usage' | 'usageStatus'> & { spend?: AccountSpend }): CardState {
+  // Gasto local (DeepSeek Harness): não há janelas de limite, só tokens e custo.
+  if (a.spend && !hasWindows(a)) return 'spend';
   // "Sem cota" vem antes: a leitura não traz janelas, mas não é "sem dados".
   if (a.usage?.noQuota) return 'noquota';
   // Leitura sem nenhuma das janelas (ex.: cache do /usage sem números) vale como "sem dados".
@@ -186,6 +222,7 @@ export function usageMessage(a: Pick<AccountInfo, 'usage' | 'usageStatus' | 'pro
   const state = cardState(a);
   if (state === 'noquota') return [tr('sem cota'), tr('sem cota')];
   if (isCodex(a)) return [tr('sem dados ainda'), tr('sem dados')];
+  if (isDsh(a)) return [tr('sem dados de gasto'), tr('sem dados')];
   return [tr('sem dados de uso'), tr('sem dados')];
 }
 
@@ -278,6 +315,14 @@ export class UsageCards {
     const five = createMeter('5h', '5h', tr('Sessão de 5 horas'));
     const week = createMeter(tr('Semana'), tr('Sem.'), tr('Limite semanal'));
     const meters = h('div', { class: 'ui-usage-card__meters' }, five.el, week.el);
+    const spendToday = h('span', { class: 'ui-usage-spend__value' });
+    const spendWeek = h('span', { class: 'ui-usage-spend__value' });
+    const spend = h(
+      'div',
+      { class: 'ui-usage-spend', hidden: true },
+      h('span', { class: 'ui-usage-spend__row' }, h('span', { class: 'ui-usage-spend__label', text: tr('Hoje') }), spendToday),
+      h('span', { class: 'ui-usage-spend__row' }, h('span', { class: 'ui-usage-spend__label', text: tr('7 dias') }), spendWeek),
+    );
     const msgLong = h('span', { class: 'ui-usage-card__msg-long', text: tr('sem dados de uso') });
     const msgShort = h('span', { class: 'ui-usage-card__msg-short', text: tr('sem dados'), attrs: { 'aria-hidden': 'true' } });
     const howLong = h('span', { class: 'ui-usage-card__how-long', text: tr('Como ativar') });
@@ -304,7 +349,7 @@ export class UsageCards {
       { class: 'ui-usage-card', tabIndex: 0, attrs: { 'aria-describedby': tipId } },
       chip,
       flag,
-      h('div', { class: 'ui-usage-card__body' }, h('div', { class: 'ui-usage-card__head' }, name, prov, email, state), meters, msg),
+      h('div', { class: 'ui-usage-card__body' }, h('div', { class: 'ui-usage-card__head' }, name, prov, email, state), meters, spend, msg),
       tip,
     );
     this.refs.set(card, {
@@ -318,6 +363,9 @@ export class UsageCards {
       meters,
       five,
       week,
+      spend,
+      spendToday,
+      spendWeek,
       msg,
       msgLong,
       msgShort,
@@ -342,6 +390,12 @@ export class UsageCards {
     setText(r.name, a.name);
     updateProviderTag(r.prov, codex ? 'codex' : 'claude', a.name);
     setText(r.email, usageSubtitle(a));
+    // DeepSeek Harness: no lugar da pasta, o saldo da conta (o cost-meter consulta; ver mod/dsh-habblaud-uso).
+    const bal = isDsh(a) && a.spend ? a.spend : undefined;
+    if (bal?.balance) setText(r.email, tr('saldo {0}', [formatBalance(bal)]));
+    else if (bal?.balanceStatus === 'error') setText(r.email, tr('saldo: consulta falhou'));
+    r.email.classList.toggle('is-balance', !!bal?.balance);
+    r.email.classList.toggle('is-dim', !!bal?.balance && !bal.balance.live);
     setAttr(card, 'aria-label', tr('{0}{1}: uso do plano', [a.name, codex ? ' (Codex)' : '']));
 
     const usage = a.usage;
@@ -356,6 +410,12 @@ export class UsageCards {
       updateMeter(r.week, week, tr('Semana'));
     }
     r.meters.classList.toggle('is-dim', state !== 'ok');
+    const sp = state === 'spend' ? a.spend : undefined;
+    setHidden(r.spend, !sp);
+    if (sp) {
+      setText(r.spendToday, spendSummary(sp.today, sp.symbol));
+      setText(r.spendWeek, spendSummary(sp.week, sp.symbol));
+    }
 
     // Idade dos números antigos no cabeçalho (no celular, um selo no chip faz esse papel). No Codex a idade fica
     // sempre à mostra (os números só se renovam enquanto alguma sessão roda), discreta enquanto são recentes.
@@ -381,7 +441,8 @@ export class UsageCards {
     setText(r.msgLong, msgLong);
     setText(r.msgShort, msgShort);
     setHidden(r.msg, state !== 'empty' && state !== 'noquota');
-    setHidden(r.how, state === 'noquota');
+    // DeepSeek Harness: a ajuda fala do Claude Code; o que fazer está na dica do cartão.
+    setHidden(r.how, state === 'noquota' || isDsh(a));
     r.msg.classList.toggle('is-noquota', state === 'noquota');
     setTitle(r.msg, state === 'noquota' ? codexUsageNote(a, now) : '');
     setText(r.howLong, codex ? tr('Como funciona') : tr('Como ativar'));
@@ -396,11 +457,16 @@ export class UsageCards {
     setText(r.tipTitle, `${a.name}${codex && !/codex/i.test(a.name) ? ' · Codex' : ''}${a.plan ? tr(' · plano {0}', [a.plan]) : ''}`);
     const rows: [string, string][] = [];
     if (codex) rows.push([tr('Ferramenta'), 'Codex']);
+    if (isDsh(a)) rows.push([tr('Ferramenta'), 'DeepSeek Harness']);
     if (a.email) rows.push(['E-mail', a.email]);
     if (a.organization) rows.push([tr('Organização'), a.organization]);
     if (a.plan) rows.push([tr('Plano'), a.plan]);
     rows.push([tr('Pasta'), a.configDir]);
     rows.push([tr('Sessões abertas'), String(a.sessions)]);
+    if (isDsh(a)) {
+      this.updateSpendTip(r, a, rows, now);
+      return;
+    }
     const u = a.usage;
     if (u && (u.fiveHour || u.sevenDay)) {
       rows.push([tr('Sessão de 5 h'), five?.summary ?? '—']);
@@ -438,5 +504,41 @@ export class UsageCards {
     // O passo a passo aparece sempre que os números não são ao vivo.
     const live = u?.source === 'statusline' && state === 'ok';
     setHidden(r.tipSetup, live);
+  }
+
+  /** Dica da conta do DeepSeek Harness: gasto local do plugin dsh-cost-meter (ou como ligá-lo). */
+  private updateSpendTip(r: CardRefs, a: AccountInfo, rows: [string, string][], now: number): void {
+    const s = a.spend;
+    if (s) {
+      const line = (p: SpendPeriod) => tr('{0} · {1} chamadas', [spendSummary(p, s.symbol), formatInt(p.calls)]);
+      rows.push([tr('Hoje'), line(s.today)]);
+      rows.push([tr('Últimos 7 dias'), line(s.week)]);
+      rows.push([tr('Este mês'), line(s.month)]);
+      for (const m of s.models) rows.push([m.name, `${formatTokens(m.tokens)} · ${formatSpendCost(m.cost, s.symbol)}`]);
+      if (s.balance) {
+        const b = s.balance;
+        const total = formatBalance(s);
+        rows.push([tr('Saldo'), b.at ? tr('{0} (consultado {1})', [total, relativeTime(b.at, now)]) : total]);
+        const sym = b.currency.toUpperCase() === s.currency ? s.symbol : `${b.currency} `;
+        if (b.toppedUp !== undefined || b.granted !== undefined)
+          rows.push([tr('Recarregado · bônus'), `${sym}${(b.toppedUp ?? 0).toFixed(2)} · ${sym}${(b.granted ?? 0).toFixed(2)}`]);
+      } else if (s.balanceStatus) {
+        rows.push([tr('Saldo'), s.balanceStatus === 'off' ? tr('consulta desligada no dsh-cost-meter') : tr('consulta falhou')]);
+      }
+      rows.push([tr('Origem'), tr('plugin dsh-cost-meter (livro-caixa local)')]);
+      rows.push([tr('Atualizado'), relativeTime(s.fetchedAt, now)]);
+    }
+    syncRows(r.tipRows, rows);
+    setText(
+      r.tipNote,
+      s
+        ? tr('Tokens com o cache incluído. O custo é a estimativa do plugin, com a tabela de preços dele: modelo sem preço conta 0.') +
+            (s.balance && !s.balance.live
+              ? ' ' + tr('O saldo é o último ponto de referência do livro-caixa; para o saldo atual, instale o plugin mod/dsh-habblaud-uso no DeepSeek Harness.')
+              : '')
+        : tr('Instale e ligue o plugin dsh-cost-meter no DeepSeek Harness: o Habblaud lê o livro-caixa local dele (~/.dsh/storages/cost-meter/ledger.json).'),
+    );
+    setHidden(r.tipNote, false);
+    setHidden(r.tipSetup, true);
   }
 }

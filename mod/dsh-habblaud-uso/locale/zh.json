@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Habblaud 用量",
+    "description": "每分钟从 dsh-cost-meter 插件取一次它已查到的 DeepSeek 余额，写到本机文件 <DSH_HOME>/storages/habblaud/balance.json，供 Habblaud 办公室的账号卡片显示。只读插件已有的数据，不碰 API Key，自己不联网。"
+  }
+}

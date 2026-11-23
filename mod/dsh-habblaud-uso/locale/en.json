@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Habblaud usage",
+    "description": "Once a minute, takes the DeepSeek balance the dsh-cost-meter plugin already knows and writes it to <DSH_HOME>/storages/habblaud/balance.json for the Habblaud office account card. Reads only the plugin's data; never touches API keys and makes no network calls itself."
+  }
+}
